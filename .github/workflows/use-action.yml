@@ -1,0 +1,45 @@
+name: Smoke Test (Released Action)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: 'workflow run'
+        required: true
+        default: 'true'
+  workflow_run:
+    workflows: ["Create release"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  smoke-test-dry-run:
+    name: Smoke Test (Dry Run)
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Mirror (dry run)
+        id: mirror
+        uses: somaz94/git-mirror-action@v1
+        with:
+          targets: |
+            generic::https://example.com/org/repo.git
+          dry_run: 'true'
+          debug: 'true'
+
+      - name: Verify Output
+        run: |
+          echo "result=${{ steps.mirror.outputs.result }}"
+          echo "mirrored_count=${{ steps.mirror.outputs.mirrored_count }}"
+          echo "failed_count=${{ steps.mirror.outputs.failed_count }}"
+          echo "PASS: dry run smoke test completed"

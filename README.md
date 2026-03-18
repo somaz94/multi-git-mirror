@@ -1,214 +1,280 @@
-# Create a Container Action
+# Git Mirror Action
 
-![Continuous Integration](https://github.com/actions/container-action/actions/workflows/ci.yml/badge.svg)
-![Linter](https://github.com/actions/container-action/actions/workflows/linter.yml/badge.svg)
+[![Continuous Integration](https://github.com/somaz94/git-mirror-action/actions/workflows/ci.yml/badge.svg)](https://github.com/somaz94/git-mirror-action/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Latest Tag](https://img.shields.io/github/v/tag/somaz94/git-mirror-action)](https://github.com/somaz94/git-mirror-action/tags)
+[![Top Language](https://img.shields.io/github/languages/top/somaz94/git-mirror-action)](https://github.com/somaz94/git-mirror-action)
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Git%20Mirror%20Action-blue?logo=github)](https://github.com/marketplace/actions/git-mirror-action)
 
-Use this template to bootstrap the creation of a container action. :rocket:
+A Go-based GitHub Action that mirrors repositories to multiple Git hosting providers — GitLab, GitHub, Bitbucket, AWS CodeCommit, and more — in a single step.
 
-This template includes compilation support, tests, a validation workflow,
-publishing, and versioning guidance.
+<br/>
 
-## Create Your Own Action
+## Features
 
-To create your own action, you can use this repository as a template! Just
-follow the below instructions:
+- Multi-target mirroring in a single workflow step
+- Auto-detect provider from URL (GitLab, GitHub, Bitbucket, CodeCommit)
+- Selective branch mirroring or mirror all branches
+- Tag mirroring support
+- Force push option for exact replication
+- Multiple authentication methods (token, app password, SSH key)
+- Dry run mode for safe testing
+- JSON result output for downstream steps
 
-1. Click the **Use this template** button at the top of the repository
-1. Select **Create a new repository**
-1. Select an owner and name for your new repository
-1. Click **Create repository**
-1. Clone your new repository
+> For detailed documentation, see the [docs/](docs/) folder:
+> [Authentication](docs/AUTHENTICATION.md) |
+> [Configuration](docs/CONFIGURATION.md) |
+> [Examples](docs/EXAMPLES.md) |
+> [Development](docs/DEVELOPMENT.md)
 
-> [!IMPORTANT]
->
-> Make sure to remove or update the [`CODEOWNERS`](./CODEOWNERS) file! For
-> details on how to use this file, see
-> [About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
-
-## Initial Setup
-
-After you've cloned the repository to your local machine or codespace, you'll
-need to perform some initial setup steps before you can develop your action.
-
-> [!NOTE]
->
-> You'll need to have a reasonably modern version of
-> [Docker](https://www.docker.com/get-started/) handy (e.g. docker engine
-> version 20 or later).
-
-1. :hammer_and_wrench: Build the container
-
-   Make sure to replace `actions/container-action` with an appropriate label for
-   your container.
-
-   ```bash
-   docker build -t actions/container-action .
-   ```
-
-1. :white_check_mark: Test the container
-
-   You can pass individual environment variables using the `--env` or `-e` flag.
-
-   ```bash
-   $ docker run --env INPUT_WHO_TO_GREET="Mona Lisa Octocat" actions/container-action
-   ::notice file=entrypoint.sh,line=7::Hello, Mona Lisa Octocat!
-   ```
-
-   Or you can pass a file with environment variables using `--env-file`.
-
-   ```bash
-   $ cat ./.env.test
-   INPUT_WHO_TO_GREET="Mona Lisa Octocat"
-
-   $ docker run --env-file ./.env.test actions/container-action
-   ::notice file=entrypoint.sh,line=7::Hello, Mona Lisa Octocat!
-   ```
-
-## Update the Action Metadata
-
-The [`action.yml`](action.yml) file defines metadata about your action, such as
-input(s) and output(s). For details about this file, see
-[Metadata syntax for GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
-
-When you copy this repository, update `action.yml` with the name, description,
-inputs, and outputs for your action.
-
-## Update the Action Code
-
-In this template, the container action runs a shell script,
-[`entrypoint.sh`](./entrypoint.sh), when the container is launched. Since you
-can choose any base Docker image and language you like, you can change this to
-suite your needs. There are a few main things to remember when writing code for
-container actions:
-
-- Inputs are accessed using argument identifiers or environment variables
-  (depending on what you set in your `action.yml`). For example, the first input
-  to this action, `who-to-greet`, can be accessed in the entrypoint script using
-  the `$INPUT_WHO_TO_GREET` environment variable.
-
-  ```bash
-  GREETING="Hello, $INPUT_WHO_TO_GREET!"
-  ```
-
-- GitHub Actions supports a number of different workflow commands such as
-  creating outputs, setting environment variables, and more. These are
-  accomplished by writing to different `GITHUB_*` environment variables. For
-  more information, see
-  [Workflow commands](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions).
-
-  | Scenario              | Example                                         |
-  | --------------------- | ----------------------------------------------- |
-  | Set environment vars  | `echo "MY_VAR=my-value" >> "$GITHUB_ENV"`       |
-  | Set outputs           | `echo "greeting=$GREETING" >> "$GITHUB_OUTPUT"` |
-  | Prepend to `PATH`     | `echo "$HOME/.local/bin" >> "$GITHUB_PATH"`     |
-  | Set `pre`/`post` vars | `echo "MY_VAR=my-value" >> "$GITHUB_STATE"`     |
-  | Set step summary      | `echo "{markdown}" >> "$GITHUB_STEP_SUMMARY"`   |
-
-  You can write multiline strings using the following syntax:
-
-  ```bash
-  {
-    echo "JSON_RESPONSE<<EOF"
-    curl https://example.com
-    echo "EOF"
-  } >> "$GITHUB_ENV"
-  ```
-
-- Make sure that the script being run is executable!
-
-  ```bash
-  git add entrypoint.sh
-  git update-index --chmod=+x entrypoint.sh
-  ```
-
-So, what are you waiting for? Go ahead and start customizing your action!
-
-1. Create a new branch
-
-   ```bash
-   git checkout -b releases/v1
-   ```
-
-1. Replace the contents of `entrypoint.sh` with your action code
-1. Build and test the container
-
-   ```bash
-   docker build -t actions/container-action .
-   docker run actions/container-action "Mona Lisa Octocat"
-   ```
-
-1. Commit your changes
-
-   ```bash
-   git add .
-   git commit -m "My first action is ready!"
-   ```
-
-1. Push them to your repository
-
-   ```bash
-   git push -u origin releases/v1
-   ```
-
-1. Create a pull request and get feedback on your action
-1. Merge the pull request into the `main` branch
-
-Your action is now published! :rocket:
-
-For information about versioning your action, see
-[Versioning](https://github.com/actions/toolkit/blob/main/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-## Validate the Action
-
-You can now validate the action by referencing it in a workflow file. For
-example, [`ci.yml`](./.github/workflows/ci.yml) demonstrates how to reference an
-action in the same repository.
-
-```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
-
-  - name: Test Local Action
-    id: test-action
-    uses: ./
-    with:
-      who-to-greet: Mona Lisa Octocat
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.greeting }}"
-```
-
-For example workflow runs, check out the
-[Actions tab](https://github.com/actions/container-action/actions)! :rocket:
+<br/>
 
 ## Usage
 
-After testing, you can create version tag(s) that developers can use to
-reference different stable versions of your action. For more information, see
-[Versioning](https://github.com/actions/toolkit/blob/main/docs/action-versioning.md)
-in the GitHub Actions toolkit.
+<br/>
 
-To include the action in a workflow in another repository, you can use the
-`uses` syntax with the `@` symbol to reference a specific branch, tag, or commit
-hash.
+### Basic — Mirror to GitLab
 
 ```yaml
 steps:
   - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
-
-  - name: Test Local Action
-    id: test-action
-    uses: actions/container-action@v1 # Commit with the `v1` tag
+    uses: actions/checkout@v6
     with:
-      who-to-greet: Mona Lisa Octocat
+      fetch-depth: 0
 
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.greeting }}"
+  - name: Mirror to GitLab
+    uses: somaz94/git-mirror-action@v1
+    with:
+      targets: |
+        gitlab::https://gitlab.com/myorg/myrepo.git
+      gitlab_token: ${{ secrets.GITLAB_TOKEN }}
 ```
+
+<br/>
+
+### Multi-target — GitLab + CodeCommit
+
+```yaml
+- name: Mirror to multiple targets
+  uses: somaz94/git-mirror-action@v1
+  with:
+    targets: |
+      gitlab::https://gitlab.com/myorg/myrepo.git
+      codecommit::https://git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo
+    gitlab_token: ${{ secrets.GITLAB_TOKEN }}
+    mirror_branches: 'main,develop'
+    mirror_tags: 'true'
+```
+
+<br/>
+
+### Mirror to Bitbucket
+
+```yaml
+- name: Mirror to Bitbucket
+  uses: somaz94/git-mirror-action@v1
+  with:
+    targets: |
+      bitbucket::https://bitbucket.org/myorg/myrepo.git
+    bitbucket_username: ${{ secrets.BITBUCKET_USERNAME }}
+    bitbucket_password: ${{ secrets.BITBUCKET_APP_PASSWORD }}
+```
+
+<br/>
+
+### With SSH Key
+
+```yaml
+- name: Mirror via SSH
+  uses: somaz94/git-mirror-action@v1
+  with:
+    targets: |
+      generic::git@custom-git.example.com:org/repo.git
+    ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+```
+
+<br/>
+
+### Dry Run with Output
+
+```yaml
+- name: Mirror (dry run)
+  uses: somaz94/git-mirror-action@v1
+  id: mirror
+  with:
+    targets: |
+      gitlab::https://gitlab.com/myorg/myrepo.git
+    gitlab_token: ${{ secrets.GITLAB_TOKEN }}
+    dry_run: 'true'
+    debug: 'true'
+
+- name: Check results
+  run: |
+    echo "Result: ${{ steps.mirror.outputs.result }}"
+    echo "Mirrored: ${{ steps.mirror.outputs.mirrored_count }}"
+    echo "Failed: ${{ steps.mirror.outputs.failed_count }}"
+```
+
+<br/>
+
+### In Release Workflow
+
+```yaml
+name: Release and Mirror
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  release-and-mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+
+      - name: Mirror to backup providers
+        uses: somaz94/git-mirror-action@v1
+        with:
+          targets: |
+            gitlab::https://gitlab.com/myorg/myrepo.git
+            bitbucket::https://bitbucket.org/myorg/myrepo.git
+          gitlab_token: ${{ secrets.GITLAB_TOKEN }}
+          bitbucket_username: ${{ secrets.BITBUCKET_USERNAME }}
+          bitbucket_password: ${{ secrets.BITBUCKET_APP_PASSWORD }}
+```
+
+<br/>
+
+## Inputs
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `targets` | Mirror target URLs (newline-separated, `provider::url` or auto-detect) | Yes | - |
+| `gitlab_token` | GitLab personal access token | No | `''` |
+| `github_token` | GitHub personal access token | No | `''` |
+| `bitbucket_username` | Bitbucket username for app password auth | No | `''` |
+| `bitbucket_password` | Bitbucket app password | No | `''` |
+| `ssh_private_key` | SSH private key for SSH-based authentication | No | `''` |
+| `mirror_branches` | Branches to mirror (comma-separated, or `all`) | No | `all` |
+| `mirror_tags` | Mirror tags | No | `true` |
+| `force_push` | Use force push | No | `true` |
+| `dry_run` | Log actions without pushing | No | `false` |
+| `debug` | Enable debug logging | No | `false` |
+
+<br/>
+
+## Outputs
+
+| Output | Description | Example |
+|--------|-------------|---------|
+| `result` | JSON array with mirror results per target | `[{"target":{...},"success":true,"message":"mirrored successfully"}]` |
+| `mirrored_count` | Number of successfully mirrored targets | `2` |
+| `failed_count` | Number of failed mirror targets | `0` |
+
+<br/>
+
+## Target Format
+
+Targets are specified one per line. You can explicitly set the provider or let it auto-detect from the URL:
+
+```
+provider::url          # explicit provider
+url                    # auto-detect from URL
+```
+
+### Supported Providers
+
+| Provider | Auth Method | Example URL |
+|----------|-------------|-------------|
+| `gitlab` | OAuth2 token | `https://gitlab.com/org/repo.git` |
+| `github` | x-access-token | `https://github.com/org/repo.git` |
+| `bitbucket` | Username + App password | `https://bitbucket.org/org/repo.git` |
+| `codecommit` | IAM / credential-helper | `https://git-codecommit.us-east-1.amazonaws.com/v1/repos/repo` |
+| `generic` | SSH key or URL as-is | `git@custom-git.example.com:org/repo.git` |
+
+<br/>
+
+## Why?
+
+Many teams need to keep repository mirrors in sync across multiple Git providers — for disaster recovery, CI/CD across platforms, compliance, or migration. This action replaces fragile shell scripts with a single, configurable step that handles authentication, branch/tag selection, and multi-target mirroring out of the box.
+
+<br/>
+
+## Project Structure
+
+```
+.
+├── cmd/
+│   └── main.go                  # Entry point
+├── internal/
+│   ├── config/
+│   │   ├── config.go            # Configuration loading & target parsing
+│   │   └── config_test.go       # Config tests
+│   ├── mirror/
+│   │   ├── mirror.go            # Mirror logic & auth URL injection
+│   │   └── mirror_test.go       # Mirror tests
+│   └── output/
+│       └── output.go            # GitHub Actions output writer
+├── .github/
+│   └── workflows/               # CI/CD workflows (9 files)
+├── action.yml                   # Action metadata
+├── Dockerfile                   # Multi-stage Docker build
+├── Makefile                     # Build targets
+├── cliff.toml                   # git-cliff changelog config
+└── go.mod
+```
+
+<br/>
+
+## Development
+
+<br/>
+
+### Prerequisites
+
+- Go 1.24+
+- Docker (for container builds)
+
+<br/>
+
+### Build
+
+```bash
+make build
+```
+
+<br/>
+
+### Test
+
+```bash
+make test
+```
+
+<br/>
+
+### Coverage
+
+```bash
+make cover
+```
+
+<br/>
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+<br/>
+
+## License
+
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
