@@ -257,3 +257,85 @@ func TestParseTargetsValidProviders(t *testing.T) {
 		}
 	}
 }
+
+func TestEnvInt(t *testing.T) {
+	t.Setenv("TEST_INT_VALID", "3")
+	t.Setenv("TEST_INT_ZERO", "0")
+	t.Setenv("TEST_INT_INVALID", "abc")
+	t.Setenv("TEST_INT_EMPTY", "")
+
+	if got := envInt("TEST_INT_VALID", 0); got != 3 {
+		t.Errorf("expected 3, got %d", got)
+	}
+	if got := envInt("TEST_INT_ZERO", 5); got != 0 {
+		t.Errorf("expected 0, got %d", got)
+	}
+	if got := envInt("TEST_INT_INVALID", 7); got != 7 {
+		t.Errorf("expected default 7 for invalid, got %d", got)
+	}
+	if got := envInt("TEST_INT_EMPTY", 10); got != 10 {
+		t.Errorf("expected default 10 for empty, got %d", got)
+	}
+	if got := envInt("NONEXISTENT_INT", 42); got != 42 {
+		t.Errorf("expected default 42 for nonexistent, got %d", got)
+	}
+}
+
+func TestLoadWithRetryAndExclude(t *testing.T) {
+	t.Setenv("INPUT_TARGETS", "gitlab::https://gitlab.com/org/repo.git")
+	t.Setenv("INPUT_GITLAB_TOKEN", "token")
+	t.Setenv("INPUT_MIRROR_BRANCHES", "all")
+	t.Setenv("INPUT_RETRY_COUNT", "3")
+	t.Setenv("INPUT_RETRY_DELAY", "10")
+	t.Setenv("INPUT_EXCLUDE_BRANCHES", "staging, hotfix")
+	t.Setenv("INPUT_PARALLEL", "true")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.RetryCount != 3 {
+		t.Errorf("expected RetryCount 3, got %d", cfg.RetryCount)
+	}
+	if cfg.RetryDelay != 10 {
+		t.Errorf("expected RetryDelay 10, got %d", cfg.RetryDelay)
+	}
+	if len(cfg.ExcludeBranches) != 2 {
+		t.Fatalf("expected 2 exclude branches, got %d", len(cfg.ExcludeBranches))
+	}
+	if cfg.ExcludeBranches[0] != "staging" || cfg.ExcludeBranches[1] != "hotfix" {
+		t.Errorf("unexpected exclude branches: %v", cfg.ExcludeBranches)
+	}
+	if !cfg.Parallel {
+		t.Error("expected Parallel to be true")
+	}
+}
+
+func TestLoadDefaultRetryValues(t *testing.T) {
+	t.Setenv("INPUT_TARGETS", "gitlab::https://gitlab.com/org/repo.git")
+	t.Setenv("INPUT_GITLAB_TOKEN", "token")
+	t.Setenv("INPUT_MIRROR_BRANCHES", "all")
+	os.Unsetenv("INPUT_RETRY_COUNT")
+	os.Unsetenv("INPUT_RETRY_DELAY")
+	os.Unsetenv("INPUT_EXCLUDE_BRANCHES")
+	os.Unsetenv("INPUT_PARALLEL")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.RetryCount != 0 {
+		t.Errorf("expected default RetryCount 0, got %d", cfg.RetryCount)
+	}
+	if cfg.RetryDelay != 5 {
+		t.Errorf("expected default RetryDelay 5, got %d", cfg.RetryDelay)
+	}
+	if len(cfg.ExcludeBranches) != 0 {
+		t.Errorf("expected no exclude branches, got %v", cfg.ExcludeBranches)
+	}
+	if cfg.Parallel {
+		t.Error("expected Parallel to be false by default")
+	}
+}

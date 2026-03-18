@@ -18,7 +18,7 @@ internal/
   output/                    # GitHub Actions output writer (JSON result, counts)
 Makefile                     # Build, test, lint commands
 Dockerfile                   # Multi-stage (golang:1.24-alpine → alpine:3.21)
-action.yml                   # GitHub Action definition (11 inputs, 3 outputs)
+action.yml                   # GitHub Action definition (15 inputs, 3 outputs)
 cliff.toml                   # git-cliff config for release notes
 ```
 
@@ -41,8 +41,9 @@ make clean           # Remove artifacts
 
 - **Required**: `targets` (newline-separated, `provider::url` or auto-detect)
 - **Auth**: `gitlab_token`, `github_token`, `bitbucket_username`, `bitbucket_password`, `ssh_private_key`
-- **Options**: `mirror_branches` (default: all), `mirror_tags` (default: true), `force_push` (default: true)
-- **Debug**: `dry_run`, `debug`
+- **Options**: `mirror_branches` (default: all), `mirror_tags` (default: true), `force_push` (default: true), `exclude_branches`, `parallel`
+- **Retry**: `retry_count` (default: 0), `retry_delay` (default: 5s)
+- **Debug**: `dry_run` (includes pre-check via `git ls-remote`), `debug`
 
 ## Key Outputs
 

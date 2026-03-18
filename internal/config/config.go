@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -46,6 +47,10 @@ type Config struct {
 	ForcePush         bool
 	DryRun            bool
 	Debug             bool
+	RetryCount        int
+	RetryDelay        int // seconds
+	ExcludeBranches   []string
+	Parallel          bool
 }
 
 // Load reads configuration from environment variables.
@@ -72,6 +77,15 @@ func Load() (*Config, error) {
 		}
 	}
 
+	var excludeList []string
+	if excl := os.Getenv("INPUT_EXCLUDE_BRANCHES"); excl != "" {
+		for _, b := range strings.Split(excl, ",") {
+			if trimmed := strings.TrimSpace(b); trimmed != "" {
+				excludeList = append(excludeList, trimmed)
+			}
+		}
+	}
+
 	cfg := &Config{
 		Targets:           targets,
 		GitLabToken:       os.Getenv("INPUT_GITLAB_TOKEN"),
@@ -85,6 +99,10 @@ func Load() (*Config, error) {
 		ForcePush:         envBool("INPUT_FORCE_PUSH", true),
 		DryRun:            envBool("INPUT_DRY_RUN", false),
 		Debug:             envBool("INPUT_DEBUG", false),
+		RetryCount:        envInt("INPUT_RETRY_COUNT", 0),
+		RetryDelay:        envInt("INPUT_RETRY_DELAY", 5),
+		ExcludeBranches:   excludeList,
+		Parallel:          envBool("INPUT_PARALLEL", false),
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -181,6 +199,18 @@ func detectProvider(url string) Provider {
 	default:
 		return ProviderGeneric
 	}
+}
+
+func envInt(key string, defaultVal int) int {
+	val := strings.TrimSpace(os.Getenv(key))
+	if val == "" {
+		return defaultVal
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return defaultVal
+	}
+	return n
 }
 
 func envBool(key string, defaultVal bool) bool {

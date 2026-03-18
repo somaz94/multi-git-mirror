@@ -46,6 +46,22 @@ inputs:
     description: 'Dry run mode - log actions without pushing (true/false)'
     required: false
     default: 'false'
+  retry_count:
+    description: 'Number of retry attempts on push failure (0 = no retry)'
+    required: false
+    default: '0'
+  retry_delay:
+    description: 'Delay in seconds between retry attempts'
+    required: false
+    default: '5'
+  exclude_branches:
+    description: 'Branches to exclude from mirroring (comma-separated)'
+    required: false
+    default: ''
+  parallel:
+    description: 'Mirror to multiple targets in parallel (true/false)'
+    required: false
+    default: 'false'
   debug:
     description: 'Enable debug logging (true/false)'
     required: false
@@ -73,4 +89,8 @@ runs:
     INPUT_MIRROR_TAGS: ${{ inputs.mirror_tags }}
     INPUT_FORCE_PUSH: ${{ inputs.force_push }}
     INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    INPUT_RETRY_COUNT: ${{ inputs.retry_count }}
+    INPUT_RETRY_DELAY: ${{ inputs.retry_delay }}
+    INPUT_EXCLUDE_BRANCHES: ${{ inputs.exclude_branches }}
+    INPUT_PARALLEL: ${{ inputs.parallel }}
     INPUT_DEBUG: ${{ inputs.debug }}

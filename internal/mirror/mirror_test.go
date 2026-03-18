@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/somaz94/git-mirror-action/internal/config"
@@ -264,6 +265,33 @@ func TestMirrorToDryRun(t *testing.T) {
 	}
 	if !strings.Contains(result.Message, "dry run") {
 		t.Errorf("expected dry run message, got: %s", result.Message)
+	}
+}
+
+func TestMirrorToDryRunPreCheckFails(t *testing.T) {
+	cfg := &config.Config{
+		DryRun: true,
+	}
+	m := New(cfg)
+	m.gitFn = func(args ...string) error {
+		if len(args) > 0 && args[0] == "ls-remote" {
+			return fmt.Errorf("connection refused")
+		}
+		return nil
+	}
+
+	target := config.Target{
+		Provider: config.ProviderGeneric,
+		URL:      "https://example.com/repo.git",
+	}
+
+	result := m.mirrorTo(target)
+
+	if result.Success {
+		t.Error("expected failure when pre-check fails")
+	}
+	if !strings.Contains(result.Message, "pre-check failed") {
+		t.Errorf("expected pre-check error, got: %s", result.Message)
 	}
 }
 
@@ -670,5 +698,299 @@ func TestMirrorToRemoteCleanupOnFailure(t *testing.T) {
 	// Should have 2 remote remove calls: initial + cleanup defer
 	if removeCalls != 2 {
 		t.Errorf("expected 2 remote remove calls (init + defer cleanup), got %d", removeCalls)
+	}
+}
+
+func TestWithRetrySuccess(t *testing.T) {
+	cfg := &config.Config{RetryCount: 2, RetryDelay: 0}
+	m := New(cfg)
+
+	callCount := 0
+	err := m.withRetry("test", func() error {
+		callCount++
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if callCount != 1 {
+		t.Errorf("expected 1 call, got %d", callCount)
+	}
+}
+
+func TestWithRetryEventualSuccess(t *testing.T) {
+	cfg := &config.Config{RetryCount: 3, RetryDelay: 0}
+	m := New(cfg)
+
+	callCount := 0
+	err := m.withRetry("test", func() error {
+		callCount++
+		if callCount < 3 {
+			return fmt.Errorf("transient error")
+		}
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if callCount != 3 {
+		t.Errorf("expected 3 calls, got %d", callCount)
+	}
+}
+
+func TestWithRetryAllFail(t *testing.T) {
+	cfg := &config.Config{RetryCount: 2, RetryDelay: 0}
+	m := New(cfg)
+
+	callCount := 0
+	err := m.withRetry("test", func() error {
+		callCount++
+		return fmt.Errorf("permanent error")
+	})
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	// 1 initial + 2 retries = 3
+	if callCount != 3 {
+		t.Errorf("expected 3 calls (1 + 2 retries), got %d", callCount)
+	}
+}
+
+func TestWithRetryNoRetry(t *testing.T) {
+	cfg := &config.Config{RetryCount: 0, RetryDelay: 0}
+	m := New(cfg)
+
+	callCount := 0
+	err := m.withRetry("test", func() error {
+		callCount++
+		return fmt.Errorf("fail")
+	})
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if callCount != 1 {
+		t.Errorf("expected 1 call (no retry), got %d", callCount)
+	}
+}
+
+func TestExcludeBranchesSpecific(t *testing.T) {
+	var pushedBranches []string
+	cfg := &config.Config{
+		MirrorAllBranches: false,
+		MirrorBranches:    []string{"main", "develop", "staging"},
+		ExcludeBranches:   []string{"develop"},
+		Debug:             true,
+	}
+	m := New(cfg)
+	m.gitFn = func(args ...string) error {
+		if len(args) > 0 && args[0] == "push" {
+			// Extract branch name from refspec
+			for _, a := range args {
+				if strings.HasPrefix(a, "refs/heads/") {
+					parts := strings.Split(a, ":")
+					branch := strings.TrimPrefix(parts[0], "refs/heads/")
+					pushedBranches = append(pushedBranches, branch)
+				}
+			}
+		}
+		return nil
+	}
+
+	err := m.pushBranches("test-remote")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(pushedBranches) != 2 {
+		t.Fatalf("expected 2 branches pushed, got %d: %v", len(pushedBranches), pushedBranches)
+	}
+	for _, b := range pushedBranches {
+		if b == "develop" {
+			t.Error("excluded branch 'develop' should not be pushed")
+		}
+	}
+}
+
+func TestExcludeBranchesAll(t *testing.T) {
+	var deletedBranches []string
+	cfg := &config.Config{
+		MirrorAllBranches: true,
+		ExcludeBranches:   []string{"staging", "hotfix"},
+	}
+	m := New(cfg)
+	m.gitFn = func(args ...string) error {
+		if len(args) >= 3 && args[0] == "push" && args[2] == "--delete" {
+			deletedBranches = append(deletedBranches, args[3])
+		}
+		return nil
+	}
+
+	err := m.pushBranches("test-remote")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(deletedBranches) != 2 {
+		t.Fatalf("expected 2 delete calls, got %d: %v", len(deletedBranches), deletedBranches)
+	}
+}
+
+func TestRunParallel(t *testing.T) {
+	cfg := &config.Config{
+		MirrorAllBranches: true,
+		MirrorTags:        true,
+		Parallel:          true,
+		Targets: []config.Target{
+			{Provider: config.ProviderGitLab, URL: "https://gitlab.com/org/repo1.git"},
+			{Provider: config.ProviderGitHub, URL: "https://github.com/org/repo2.git"},
+			{Provider: config.ProviderGeneric, URL: "https://example.com/repo3.git"},
+		},
+	}
+	m := New(cfg)
+	m.gitFn = mockGitOK()
+
+	results := m.Run()
+
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(results))
+	}
+	for i, r := range results {
+		if !r.Success {
+			t.Errorf("result[%d]: expected success, got failure: %s", i, r.Message)
+		}
+	}
+}
+
+func TestRunParallelWithFailure(t *testing.T) {
+	cfg := &config.Config{
+		MirrorAllBranches: true,
+		Parallel:          true,
+		Targets: []config.Target{
+			{Provider: config.ProviderGeneric, URL: "https://example.com/repo1.git"},
+			{Provider: config.ProviderGeneric, URL: "https://example.com/repo2.git"},
+		},
+	}
+	m := New(cfg)
+	var mu sync.Mutex
+	callMap := make(map[string]int)
+	m.gitFn = func(args ...string) error {
+		if len(args) >= 2 && args[0] == "remote" && args[1] == "add" {
+			remoteName := args[2]
+			mu.Lock()
+			callMap[remoteName]++
+			mu.Unlock()
+		}
+		// Fail push for all
+		if len(args) > 0 && args[0] == "push" {
+			return fmt.Errorf("push failed")
+		}
+		return nil
+	}
+
+	results := m.Run()
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	// At least one should fail
+	failCount := 0
+	for _, r := range results {
+		if !r.Success {
+			failCount++
+		}
+	}
+	if failCount == 0 {
+		t.Error("expected at least one failure")
+	}
+}
+
+func TestSanitizeRemoteName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"https://gitlab.com/org/repo.git", "gitlab-com-org-repo-git"},
+		{"git@github.com:org/repo.git", "github-com-org-repo-git"},
+	}
+	for _, tt := range tests {
+		got := sanitizeRemoteName(tt.input)
+		if got != tt.expected {
+			t.Errorf("sanitizeRemoteName(%q) = %q, want %q", tt.input, got, tt.expected)
+		}
+	}
+}
+
+func TestIsExcluded(t *testing.T) {
+	cfg := &config.Config{
+		ExcludeBranches: []string{"staging", "hotfix"},
+	}
+	m := New(cfg)
+
+	if !m.isExcluded("staging") {
+		t.Error("expected staging to be excluded")
+	}
+	if !m.isExcluded("hotfix") {
+		t.Error("expected hotfix to be excluded")
+	}
+	if m.isExcluded("main") {
+		t.Error("expected main not to be excluded")
+	}
+}
+
+func TestRunSingleTargetNotParallel(t *testing.T) {
+	// Parallel with single target should still work (falls through to sequential)
+	cfg := &config.Config{
+		MirrorAllBranches: true,
+		Parallel:          true,
+		Targets: []config.Target{
+			{Provider: config.ProviderGeneric, URL: "https://example.com/repo.git"},
+		},
+	}
+	m := New(cfg)
+	m.gitFn = mockGitOK()
+
+	results := m.Run()
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if !results[0].Success {
+		t.Errorf("expected success, got: %s", results[0].Message)
+	}
+}
+
+func TestMirrorToWithRetry(t *testing.T) {
+	pushCount := 0
+	cfg := &config.Config{
+		MirrorAllBranches: true,
+		MirrorTags:        true,
+		RetryCount:        2,
+		RetryDelay:        0,
+	}
+	m := New(cfg)
+	m.gitFn = func(args ...string) error {
+		if len(args) > 0 && args[0] == "push" {
+			pushCount++
+			// Fail first push attempt, succeed second
+			if pushCount == 1 {
+				return fmt.Errorf("transient error")
+			}
+		}
+		return nil
+	}
+
+	target := config.Target{
+		Provider: config.ProviderGeneric,
+		URL:      "https://example.com/repo.git",
+	}
+
+	result := m.mirrorTo(target)
+
+	if !result.Success {
+		t.Errorf("expected success after retry, got: %s", result.Message)
 	}
 }

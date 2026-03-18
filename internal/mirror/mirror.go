@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/somaz94/git-mirror-action/internal/config"
 )
@@ -25,11 +27,12 @@ type Mirror struct {
 	cfg       *config.Config
 	gitFn     gitRunner
 	secrets   []string // values to mask in debug logs
+	sshDir    string   // directory for SSH key files
 }
 
 // New creates a new Mirror instance.
 func New(cfg *config.Config) *Mirror {
-	m := &Mirror{cfg: cfg}
+	m := &Mirror{cfg: cfg, sshDir: defaultSSHDir}
 	m.gitFn = m.execGit
 	m.secrets = collectSecrets(cfg)
 	return m
@@ -63,6 +66,13 @@ func (m *Mirror) Run() []Result {
 	}
 	defer m.cleanupSSH()
 
+	if m.cfg.Parallel && len(m.cfg.Targets) > 1 {
+		return m.runParallel()
+	}
+	return m.runSequential()
+}
+
+func (m *Mirror) runSequential() []Result {
 	var results []Result
 
 	for _, target := range m.cfg.Targets {
@@ -81,13 +91,38 @@ func (m *Mirror) Run() []Result {
 	return results
 }
 
+func (m *Mirror) runParallel() []Result {
+	results := make([]Result, len(m.cfg.Targets))
+	var wg sync.WaitGroup
+
+	for i, target := range m.cfg.Targets {
+		wg.Add(1)
+		go func(idx int, t config.Target) {
+			defer wg.Done()
+			m.logInfo("Mirroring to %s (%s)...", t.URL, t.Provider)
+
+			result := m.mirrorTo(t)
+			results[idx] = result
+
+			if result.Success {
+				m.logInfo("Successfully mirrored to %s", t.URL)
+			} else {
+				m.logError("Failed to mirror to %s: %s", t.URL, result.Message)
+			}
+		}(i, target)
+	}
+
+	wg.Wait()
+	return results
+}
+
 func (m *Mirror) mirrorTo(target config.Target) Result {
 	authURL, err := m.buildAuthURL(target)
 	if err != nil {
 		return Result{Target: target, Success: false, Message: err.Error()}
 	}
 
-	remoteName := fmt.Sprintf("mirror-%s", target.Provider)
+	remoteName := fmt.Sprintf("mirror-%s-%s", target.Provider, sanitizeRemoteName(target.URL))
 
 	// Remove remote if it already exists (ignore error)
 	_ = m.git("remote", "remove", remoteName)
@@ -103,23 +138,58 @@ func (m *Mirror) mirrorTo(target config.Target) Result {
 	}()
 
 	if m.cfg.DryRun {
-		m.logInfo("[DRY RUN] Would push to %s", target.URL)
-		return Result{Target: target, Success: true, Message: "dry run - skipped"}
+		// Pre-check: verify remote connectivity
+		if err := m.git("ls-remote", "--exit-code", remoteName); err != nil {
+			m.logError("[DRY RUN] Pre-check failed for %s: %v", target.URL, err)
+			return Result{Target: target, Success: false, Message: fmt.Sprintf("pre-check failed: %v", err)}
+		}
+		m.logInfo("[DRY RUN] Pre-check passed for %s", target.URL)
+		return Result{Target: target, Success: true, Message: "dry run - pre-check passed"}
 	}
 
-	// Push branches
-	if err := m.pushBranches(remoteName); err != nil {
+	// Push branches with retry
+	if err := m.withRetry("push branches", func() error {
+		return m.pushBranches(remoteName)
+	}); err != nil {
 		return Result{Target: target, Success: false, Message: fmt.Sprintf("failed to push branches: %v", err)}
 	}
 
-	// Push tags
+	// Push tags with retry
 	if m.cfg.MirrorTags {
-		if err := m.pushTags(remoteName); err != nil {
+		if err := m.withRetry("push tags", func() error {
+			return m.pushTags(remoteName)
+		}); err != nil {
 			return Result{Target: target, Success: false, Message: fmt.Sprintf("failed to push tags: %v", err)}
 		}
 	}
 
 	return Result{Target: target, Success: true, Message: "mirrored successfully"}
+}
+
+// sanitizeRemoteName creates a safe remote name suffix from a URL.
+func sanitizeRemoteName(rawURL string) string {
+	s := rawURL
+	for _, ch := range []string{"https://", "http://", "git@", ":", "/", "."} {
+		s = strings.ReplaceAll(s, ch, "-")
+	}
+	return strings.Trim(s, "-")
+}
+
+// withRetry executes fn with retry logic based on config.
+func (m *Mirror) withRetry(operation string, fn func() error) error {
+	var lastErr error
+	attempts := 1 + m.cfg.RetryCount
+	for i := 0; i < attempts; i++ {
+		lastErr = fn()
+		if lastErr == nil {
+			return nil
+		}
+		if i < attempts-1 {
+			m.logInfo("Retry %d/%d for %s after error: %v", i+1, m.cfg.RetryCount, operation, lastErr)
+			time.Sleep(time.Duration(m.cfg.RetryDelay) * time.Second)
+		}
+	}
+	return lastErr
 }
 
 func (m *Mirror) pushBranches(remote string) error {
@@ -129,9 +199,26 @@ func (m *Mirror) pushBranches(remote string) error {
 	}
 
 	if m.cfg.MirrorAllBranches {
+		// When excluding branches with --all, use refspec exclusion
+		if len(m.cfg.ExcludeBranches) > 0 {
+			args = append(args, remote, "--all")
+			// Push all first, then delete excluded branches on remote
+			if err := m.git(args...); err != nil {
+				return err
+			}
+			for _, branch := range m.cfg.ExcludeBranches {
+				m.logDebug("Excluding branch %s from remote %s", branch, remote)
+				_ = m.git("push", remote, "--delete", branch)
+			}
+			return nil
+		}
 		args = append(args, "--all", remote)
 	} else {
 		for _, branch := range m.cfg.MirrorBranches {
+			if m.isExcluded(branch) {
+				m.logDebug("Skipping excluded branch: %s", branch)
+				continue
+			}
 			branchArgs := make([]string, len(args))
 			copy(branchArgs, args)
 			branchArgs = append(branchArgs, remote, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
@@ -143,6 +230,15 @@ func (m *Mirror) pushBranches(remote string) error {
 	}
 
 	return m.git(args...)
+}
+
+func (m *Mirror) isExcluded(branch string) bool {
+	for _, excl := range m.cfg.ExcludeBranches {
+		if excl == branch {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Mirror) pushTags(remote string) error {
