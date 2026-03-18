@@ -17,6 +17,15 @@ const (
 	ProviderGeneric    Provider = "generic"
 )
 
+// validProviders is the set of recognized provider names.
+var validProviders = map[Provider]bool{
+	ProviderGitLab:     true,
+	ProviderGitHub:     true,
+	ProviderBitbucket:  true,
+	ProviderCodeCommit: true,
+	ProviderGeneric:    true,
+}
+
 // Target represents a single mirror target.
 type Target struct {
 	Provider Provider
@@ -25,18 +34,18 @@ type Target struct {
 
 // Config holds all configuration for the mirror action.
 type Config struct {
-	Targets            []Target
-	GitLabToken        string
-	GitHubToken        string
-	BitbucketUsername   string
-	BitbucketPassword  string
-	SSHPrivateKey      string
-	MirrorBranches     []string
-	MirrorAllBranches  bool
-	MirrorTags         bool
-	ForcePush          bool
-	DryRun             bool
-	Debug              bool
+	Targets           []Target
+	GitLabToken       string
+	GitHubToken       string
+	BitbucketUsername string
+	BitbucketPassword string
+	SSHPrivateKey     string
+	MirrorBranches    []string
+	MirrorAllBranches bool
+	MirrorTags        bool
+	ForcePush         bool
+	DryRun            bool
+	Debug             bool
 }
 
 // Load reads configuration from environment variables.
@@ -63,12 +72,12 @@ func Load() (*Config, error) {
 		}
 	}
 
-	return &Config{
+	cfg := &Config{
 		Targets:           targets,
 		GitLabToken:       os.Getenv("INPUT_GITLAB_TOKEN"),
 		GitHubToken:       os.Getenv("INPUT_GITHUB_TOKEN"),
-		BitbucketUsername:  os.Getenv("INPUT_BITBUCKET_USERNAME"),
-		BitbucketPassword:  os.Getenv("INPUT_BITBUCKET_PASSWORD"),
+		BitbucketUsername: os.Getenv("INPUT_BITBUCKET_USERNAME"),
+		BitbucketPassword: os.Getenv("INPUT_BITBUCKET_PASSWORD"),
 		SSHPrivateKey:     os.Getenv("INPUT_SSH_PRIVATE_KEY"),
 		MirrorBranches:    branchList,
 		MirrorAllBranches: mirrorAll,
@@ -76,7 +85,43 @@ func Load() (*Config, error) {
 		ForcePush:         envBool("INPUT_FORCE_PUSH", true),
 		DryRun:            envBool("INPUT_DRY_RUN", false),
 		Debug:             envBool("INPUT_DEBUG", false),
-	}, nil
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// Validate checks the configuration for consistency and required values.
+func (c *Config) Validate() error {
+	if !c.MirrorAllBranches && len(c.MirrorBranches) == 0 {
+		return fmt.Errorf("mirror_branches must specify branch names or 'all'")
+	}
+
+	for _, t := range c.Targets {
+		switch t.Provider {
+		case ProviderGitLab:
+			if c.GitLabToken == "" && c.SSHPrivateKey == "" {
+				logWarning("target %s: no gitlab_token or ssh_private_key provided", t.URL)
+			}
+		case ProviderGitHub:
+			if c.GitHubToken == "" && c.SSHPrivateKey == "" {
+				logWarning("target %s: no github_token or ssh_private_key provided", t.URL)
+			}
+		case ProviderBitbucket:
+			if (c.BitbucketUsername == "" || c.BitbucketPassword == "") && c.SSHPrivateKey == "" {
+				logWarning("target %s: no bitbucket credentials or ssh_private_key provided", t.URL)
+			}
+		}
+	}
+
+	return nil
+}
+
+func logWarning(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "::warning::%s\n", fmt.Sprintf(format, args...))
 }
 
 // parseTargets parses the newline-separated targets input.
@@ -92,7 +137,11 @@ func parseTargets(raw string) ([]Target, error) {
 
 		var t Target
 		if parts := strings.SplitN(line, "::", 2); len(parts) == 2 {
-			t.Provider = Provider(strings.ToLower(strings.TrimSpace(parts[0])))
+			provider := Provider(strings.ToLower(strings.TrimSpace(parts[0])))
+			if !validProviders[provider] {
+				return nil, fmt.Errorf("unknown provider %q in target: %q (valid: gitlab, github, bitbucket, codecommit, generic)", provider, line)
+			}
+			t.Provider = provider
 			t.URL = strings.TrimSpace(parts[1])
 		} else {
 			t.URL = line
@@ -101,6 +150,10 @@ func parseTargets(raw string) ([]Target, error) {
 
 		if t.URL == "" {
 			return nil, fmt.Errorf("empty URL in target: %q", line)
+		}
+
+		if !strings.HasPrefix(t.URL, "https://") && !strings.HasPrefix(t.URL, "http://") && !strings.HasPrefix(t.URL, "git@") {
+			return nil, fmt.Errorf("invalid URL format in target: %q (must start with https://, http://, or git@)", t.URL)
 		}
 
 		targets = append(targets, t)

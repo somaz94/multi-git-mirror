@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -21,19 +22,47 @@ type gitRunner func(args ...string) error
 
 // Mirror handles repository mirroring operations.
 type Mirror struct {
-	cfg    *config.Config
-	gitFn  gitRunner
+	cfg       *config.Config
+	gitFn     gitRunner
+	secrets   []string // values to mask in debug logs
 }
 
 // New creates a new Mirror instance.
 func New(cfg *config.Config) *Mirror {
 	m := &Mirror{cfg: cfg}
 	m.gitFn = m.execGit
+	m.secrets = collectSecrets(cfg)
 	return m
+}
+
+// collectSecrets gathers all sensitive values for log masking.
+func collectSecrets(cfg *config.Config) []string {
+	var secrets []string
+	for _, s := range []string{
+		cfg.GitLabToken,
+		cfg.GitHubToken,
+		cfg.BitbucketPassword,
+		cfg.SSHPrivateKey,
+	} {
+		if s != "" {
+			secrets = append(secrets, s)
+		}
+	}
+	return secrets
 }
 
 // Run executes mirroring to all configured targets.
 func (m *Mirror) Run() []Result {
+	// Setup SSH if configured
+	if err := m.setupSSH(); err != nil {
+		return []Result{{
+			Target:  config.Target{},
+			Success: false,
+			Message: fmt.Sprintf("SSH setup failed: %v", err),
+		}}
+	}
+	defer m.cleanupSSH()
+
 	var results []Result
 
 	for _, target := range m.cfg.Targets {
@@ -60,13 +89,18 @@ func (m *Mirror) mirrorTo(target config.Target) Result {
 
 	remoteName := fmt.Sprintf("mirror-%s", target.Provider)
 
-	// Remove remote if it already exists
+	// Remove remote if it already exists (ignore error)
 	_ = m.git("remote", "remove", remoteName)
 
 	// Add the mirror remote
 	if err := m.git("remote", "add", remoteName, authURL); err != nil {
 		return Result{Target: target, Success: false, Message: fmt.Sprintf("failed to add remote: %v", err)}
 	}
+
+	// Clean up remote on exit
+	defer func() {
+		_ = m.git("remote", "remove", remoteName)
+	}()
 
 	if m.cfg.DryRun {
 		m.logInfo("[DRY RUN] Would push to %s", target.URL)
@@ -85,9 +119,6 @@ func (m *Mirror) mirrorTo(target config.Target) Result {
 		}
 	}
 
-	// Clean up remote
-	_ = m.git("remote", "remove", remoteName)
-
 	return Result{Target: target, Success: true, Message: "mirrored successfully"}
 }
 
@@ -101,7 +132,9 @@ func (m *Mirror) pushBranches(remote string) error {
 		args = append(args, "--all", remote)
 	} else {
 		for _, branch := range m.cfg.MirrorBranches {
-			branchArgs := append(args, remote, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
+			branchArgs := make([]string, len(args))
+			copy(branchArgs, args)
+			branchArgs = append(branchArgs, remote, fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch))
 			if err := m.git(branchArgs...); err != nil {
 				return fmt.Errorf("branch %s: %w", branch, err)
 			}
@@ -122,36 +155,38 @@ func (m *Mirror) pushTags(remote string) error {
 }
 
 func (m *Mirror) buildAuthURL(target config.Target) (string, error) {
-	url := target.URL
+	rawURL := target.URL
 
 	switch target.Provider {
 	case config.ProviderGitLab:
 		if m.cfg.GitLabToken != "" {
-			url = injectTokenAuth(url, "oauth2", m.cfg.GitLabToken)
+			rawURL = injectTokenAuth(rawURL, "oauth2", m.cfg.GitLabToken)
 		}
 	case config.ProviderGitHub:
 		if m.cfg.GitHubToken != "" {
-			url = injectTokenAuth(url, "x-access-token", m.cfg.GitHubToken)
+			rawURL = injectTokenAuth(rawURL, "x-access-token", m.cfg.GitHubToken)
 		}
 	case config.ProviderBitbucket:
 		if m.cfg.BitbucketUsername != "" && m.cfg.BitbucketPassword != "" {
-			url = injectTokenAuth(url, m.cfg.BitbucketUsername, m.cfg.BitbucketPassword)
+			rawURL = injectTokenAuth(rawURL, m.cfg.BitbucketUsername, m.cfg.BitbucketPassword)
 		}
 	case config.ProviderCodeCommit:
 		// CodeCommit uses credential-helper or IAM, URL is used as-is
 	case config.ProviderGeneric:
-		// Use URL as-is, or SSH key will be configured separately
+		// Use URL as-is; SSH key is configured via setupSSH
 	}
 
-	return url, nil
+	return rawURL, nil
 }
 
-// injectTokenAuth injects username:password into an HTTPS URL.
-func injectTokenAuth(url, username, password string) string {
-	if strings.HasPrefix(url, "https://") {
-		return fmt.Sprintf("https://%s:%s@%s", username, password, strings.TrimPrefix(url, "https://"))
+// injectTokenAuth injects URL-encoded username:password into an HTTPS URL.
+func injectTokenAuth(rawURL, username, password string) string {
+	if strings.HasPrefix(rawURL, "https://") {
+		encodedUser := url.QueryEscape(username)
+		encodedPass := url.QueryEscape(password)
+		return fmt.Sprintf("https://%s:%s@%s", encodedUser, encodedPass, strings.TrimPrefix(rawURL, "https://"))
 	}
-	return url
+	return rawURL
 }
 
 func (m *Mirror) git(args ...string) error {
@@ -159,11 +194,19 @@ func (m *Mirror) git(args ...string) error {
 }
 
 func (m *Mirror) execGit(args ...string) error {
-	m.logDebug("git %s", strings.Join(args, " "))
+	m.logDebug("git %s", m.maskSecrets(strings.Join(args, " ")))
 	cmd := exec.Command("git", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// maskSecrets replaces sensitive values in a string with ***.
+func (m *Mirror) maskSecrets(s string) string {
+	for _, secret := range m.secrets {
+		s = strings.ReplaceAll(s, secret, "***")
+	}
+	return s
 }
 
 func (m *Mirror) logInfo(format string, args ...interface{}) {
