@@ -1,4 +1,4 @@
-name: 'Git Mirror Action'
+name: 'Multi Git Mirror'
 description: 'Mirror repositories to multiple Git hosting providers (GitLab, CodeCommit, Bitbucket, etc.)'
 author: 'somaz94'
 
