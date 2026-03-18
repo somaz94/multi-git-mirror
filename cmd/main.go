@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/somaz94/git-mirror-action/internal/config"
 	"github.com/somaz94/git-mirror-action/internal/mirror"
@@ -17,6 +18,12 @@ func main() {
 }
 
 func run() error {
+	// Trust the GitHub Actions workspace directory inside Docker
+	if workspace := os.Getenv("GITHUB_WORKSPACE"); workspace != "" {
+		exec.Command("git", "config", "--global", "--add", "safe.directory", workspace).Run()
+	}
+	exec.Command("git", "config", "--global", "--add", "safe.directory", "/github/workspace").Run()
+
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
