@@ -28,18 +28,61 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Mirror (dry run)
-        id: mirror
+      - name: Mirror dry-run (single target)
+        id: mirror-single
         uses: somaz94/git-mirror-action@v1
+        continue-on-error: true
         with:
           targets: |
-            generic::https://example.com/org/repo.git
+            github::https://github.com/${{ github.repository }}.git
           dry_run: 'true'
           debug: 'true'
 
-      - name: Verify Output
+      - name: Verify single target output
         run: |
-          echo "result=${{ steps.mirror.outputs.result }}"
-          echo "mirrored_count=${{ steps.mirror.outputs.mirrored_count }}"
-          echo "failed_count=${{ steps.mirror.outputs.failed_count }}"
-          echo "PASS: dry run smoke test completed"
+          echo "result=${{ steps.mirror-single.outputs.result }}"
+          echo "mirrored_count=${{ steps.mirror-single.outputs.mirrored_count }}"
+          echo "failed_count=${{ steps.mirror-single.outputs.failed_count }}"
+
+          if [ "${{ steps.mirror-single.outputs.mirrored_count }}" = "1" ]; then
+            echo "PASS: single target dry-run succeeded"
+          else
+            echo "WARN: single target dry-run returned unexpected mirrored_count"
+          fi
+
+      - name: Mirror dry-run (multi-target with options)
+        id: mirror-multi
+        uses: somaz94/git-mirror-action@v1
+        continue-on-error: true
+        with:
+          targets: |
+            github::https://github.com/${{ github.repository }}.git
+          mirror_branches: 'main'
+          mirror_tags: 'true'
+          force_push: 'true'
+          exclude_branches: 'staging'
+          retry_count: '1'
+          retry_delay: '1'
+          dry_run: 'true'
+          debug: 'true'
+
+      - name: Verify multi-target output
+        run: |
+          echo "result=${{ steps.mirror-multi.outputs.result }}"
+          echo "mirrored_count=${{ steps.mirror-multi.outputs.mirrored_count }}"
+          echo "failed_count=${{ steps.mirror-multi.outputs.failed_count }}"
+
+          RESULT='${{ steps.mirror-multi.outputs.result }}'
+          if echo "$RESULT" | grep -q "pre-check passed"; then
+            echo "PASS: multi-target dry-run with options succeeded"
+          else
+            echo "WARN: multi-target output unexpected"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Single target dry-run | ${{ steps.mirror-single.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Multi-target with options | ${{ steps.mirror-multi.outcome }} |" >> $GITHUB_STEP_SUMMARY

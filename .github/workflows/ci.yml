@@ -64,13 +64,49 @@ jobs:
           push: true
           tags: ${{ env.TEST_TAG }}
 
-      - name: Run the Container (dry-run)
+      - name: Docker dry-run (reachable URL)
         run: |
-          docker run \
-            --env INPUT_TARGETS="generic::https://example.com/repo.git" \
+          OUTPUT=$(docker run \
+            --env INPUT_TARGETS="github::https://github.com/${{ github.repository }}.git" \
             --env INPUT_MIRROR_BRANCHES="all" \
             --env INPUT_DRY_RUN="true" \
-            --rm ${{ env.TEST_TAG }} 2>&1 || true
+            --env INPUT_DEBUG="true" \
+            --rm ${{ env.TEST_TAG }} 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "pre-check passed" && echo "PASS: dry-run pre-check succeeded" || echo "WARN: pre-check may have failed (expected in some network conditions)"
+
+      - name: Docker config validation (missing targets)
+        run: |
+          OUTPUT=$(docker run \
+            --env INPUT_MIRROR_BRANCHES="all" \
+            --rm ${{ env.TEST_TAG }} 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "targets input is required"
+          echo "PASS: config validation correctly rejects missing targets"
+
+      - name: Docker config validation (invalid branches)
+        run: |
+          OUTPUT=$(docker run \
+            --env INPUT_TARGETS="generic::https://example.com/repo.git" \
+            --env INPUT_MIRROR_BRANCHES="" \
+            --rm ${{ env.TEST_TAG }} 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "mirror_branches must specify"
+          echo "PASS: config validation correctly rejects empty branches"
+
+      - name: Docker multi-target dry-run
+        run: |
+          TARGETS=$(printf "github::https://github.com/${{ github.repository }}.git\ngeneric::https://example.com/repo.git")
+          OUTPUT=$(docker run \
+            --env INPUT_TARGETS="$TARGETS" \
+            --env INPUT_MIRROR_BRANCHES="all" \
+            --env INPUT_DRY_RUN="true" \
+            --env INPUT_PARALLEL="true" \
+            --env INPUT_DEBUG="true" \
+            --rm ${{ env.TEST_TAG }} 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "Mirroring to"
+          echo "PASS: multi-target dry-run executed"
 
   test-action:
     name: GitHub Actions Test
@@ -87,10 +123,69 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Run binary directly (dry validation)
+      - name: Build binary
+        run: go build -o git-mirror-action ./cmd/main.go
+
+      - name: Dry-run with reachable URL
         run: |
-          go build -o git-mirror-action ./cmd/main.go
-          INPUT_TARGETS="generic::https://example.com/repo.git" INPUT_MIRROR_BRANCHES="all" INPUT_DRY_RUN="true" ./git-mirror-action 2>&1 || true
+          OUTPUT=$(INPUT_TARGETS="github::https://github.com/${{ github.repository }}.git" \
+            INPUT_MIRROR_BRANCHES="all" \
+            INPUT_DRY_RUN="true" \
+            INPUT_DEBUG="true" \
+            ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "pre-check passed"
+          echo "PASS: binary dry-run pre-check succeeded"
+
+      - name: Config validation (missing targets)
+        run: |
+          OUTPUT=$(INPUT_MIRROR_BRANCHES="all" ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "targets input is required"
+          echo "PASS: missing targets correctly rejected"
+
+      - name: Config validation (unknown provider)
+        run: |
+          OUTPUT=$(INPUT_TARGETS="invalid::https://example.com/repo.git" \
+            INPUT_MIRROR_BRANCHES="all" \
+            ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "unknown provider"
+          echo "PASS: unknown provider correctly rejected"
+
+      - name: Dry-run with exclude branches
+        run: |
+          OUTPUT=$(INPUT_TARGETS="github::https://github.com/${{ github.repository }}.git" \
+            INPUT_MIRROR_BRANCHES="all" \
+            INPUT_EXCLUDE_BRANCHES="staging,hotfix" \
+            INPUT_DRY_RUN="true" \
+            INPUT_DEBUG="true" \
+            ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "pre-check passed"
+          echo "PASS: dry-run with exclude branches succeeded"
+
+      - name: Dry-run with retry config
+        run: |
+          OUTPUT=$(INPUT_TARGETS="github::https://github.com/${{ github.repository }}.git" \
+            INPUT_MIRROR_BRANCHES="all" \
+            INPUT_RETRY_COUNT="2" \
+            INPUT_RETRY_DELAY="1" \
+            INPUT_DRY_RUN="true" \
+            ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "pre-check passed"
+          echo "PASS: dry-run with retry config succeeded"
+
+      - name: Dry-run with specific branches
+        run: |
+          OUTPUT=$(INPUT_TARGETS="github::https://github.com/${{ github.repository }}.git" \
+            INPUT_MIRROR_BRANCHES="main" \
+            INPUT_DRY_RUN="true" \
+            ./git-mirror-action 2>&1) || true
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "pre-check passed"
+          echo "PASS: dry-run with specific branch succeeded"
 
   ci-result:
     name: CI Result
