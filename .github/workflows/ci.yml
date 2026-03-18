@@ -55,7 +55,6 @@ jobs:
       - name: Setup Docker BuildX
         uses: docker/setup-buildx-action@v4
         with:
-          install: true
           driver-opts: network=host
 
       - name: Build the Container
@@ -69,6 +68,7 @@ jobs:
         run: |
           docker run \
             --env INPUT_TARGETS="generic::https://example.com/repo.git" \
+            --env INPUT_MIRROR_BRANCHES="all" \
             --env INPUT_DRY_RUN="true" \
             --rm ${{ env.TEST_TAG }} 2>&1 || true
 
@@ -90,7 +90,7 @@ jobs:
       - name: Run binary directly (dry validation)
         run: |
           go build -o git-mirror-action ./cmd/main.go
-          INPUT_TARGETS="generic::https://example.com/repo.git" INPUT_DRY_RUN="true" ./git-mirror-action 2>&1 || true
+          INPUT_TARGETS="generic::https://example.com/repo.git" INPUT_MIRROR_BRANCHES="all" INPUT_DRY_RUN="true" ./git-mirror-action 2>&1 || true
 
   ci-result:
     name: CI Result
