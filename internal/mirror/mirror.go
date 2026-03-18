@@ -26,8 +26,9 @@ type gitRunner func(args ...string) error
 type Mirror struct {
 	cfg       *config.Config
 	gitFn     gitRunner
-	secrets   []string // values to mask in debug logs
-	sshDir    string   // directory for SSH key files
+	secrets   []string   // values to mask in debug logs
+	sshDir    string     // directory for SSH key files
+	configMu  sync.Mutex // protects git config operations (remote add/remove)
 }
 
 // New creates a new Mirror instance.
@@ -59,7 +60,7 @@ func collectSecrets(cfg *config.Config) []string {
 func (m *Mirror) ensureGitRepo() error {
 	if err := m.gitFn("rev-parse", "--git-dir"); err != nil {
 		m.logDebug("No git repository found, initializing temporary repo for dry-run")
-		if err := m.gitFn("init"); err != nil {
+		if err := m.gitFn("init", "-b", "main"); err != nil {
 			return fmt.Errorf("failed to initialize temporary git repo: %w", err)
 		}
 	}
@@ -145,17 +146,21 @@ func (m *Mirror) mirrorTo(target config.Target) Result {
 
 	remoteName := fmt.Sprintf("mirror-%s-%s", target.Provider, sanitizeRemoteName(target.URL))
 
-	// Remove remote if it already exists (ignore error)
+	// Lock to prevent concurrent .git/config modifications
+	m.configMu.Lock()
 	_ = m.git("remote", "remove", remoteName)
+	addErr := m.git("remote", "add", remoteName, authURL)
+	m.configMu.Unlock()
 
-	// Add the mirror remote
-	if err := m.git("remote", "add", remoteName, authURL); err != nil {
-		return Result{Target: target, Success: false, Message: fmt.Sprintf("failed to add remote: %v", err)}
+	if addErr != nil {
+		return Result{Target: target, Success: false, Message: fmt.Sprintf("failed to add remote: %v", addErr)}
 	}
 
 	// Clean up remote on exit
 	defer func() {
+		m.configMu.Lock()
 		_ = m.git("remote", "remove", remoteName)
+		m.configMu.Unlock()
 	}()
 
 	if m.cfg.DryRun {
@@ -314,6 +319,8 @@ func (m *Mirror) execGit(args ...string) error {
 	m.logDebug("git %s", m.maskSecrets(strings.Join(args, " ")))
 	cmd := exec.Command("git", args...)
 	cmd.Stdout = os.Stdout
+	// Prevent interactive credential prompts (fails gracefully in CI/Docker)
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 
 	// Capture stderr and mask secrets before outputting
 	var stderrBuf strings.Builder
