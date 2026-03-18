@@ -1,4 +1,4 @@
-# Git Mirror Action
+# Multi Git Mirror
 
 [![Continuous Integration](https://github.com/somaz94/git-mirror-action/actions/workflows/ci.yml/badge.svg)](https://github.com/somaz94/git-mirror-action/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
