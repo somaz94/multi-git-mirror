@@ -161,11 +161,15 @@ Scoped to a single repository. Best for minimal-privilege access.
    - **Scopes**: Check **Repositories** → **Write**
 5. Click **Create**
 6. **Copy the token immediately** — it will not be shown again
-7. Add two GitHub secrets:
-   - `BITBUCKET_USERNAME`: The auto-generated username shown with the token (e.g., `x-token-auth`)
+7. Note the git clone command shown — the username is `x-token-auth`:
+   ```
+   git clone https://x-token-auth:<token>@bitbucket.org/<workspace>/<repo>.git
+   ```
+8. Add two GitHub secrets:
+   - `BITBUCKET_USERNAME`: `x-token-auth` (the auto-generated username)
    - `BITBUCKET_API_TOKEN`: The token you just created
 
-> **Note**: Repository Access Tokens have an auto-generated username (shown on creation). Use that as `bitbucket_username`, not your personal username.
+> **Note**: Repository Access Tokens always use `x-token-auth` as the username for git HTTPS operations. Use that as `bitbucket_username`, not your personal username.
 
 <br/>
 
