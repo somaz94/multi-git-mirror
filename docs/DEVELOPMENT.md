@@ -149,6 +149,16 @@ tag push v* → Create release
 
 <br/>
 
+## Workflow
+
+```bash
+make check-gh        # Verify gh CLI is installed and authenticated
+make branch name=my-feature   # Create feature branch from main
+make pr title="feat: add my feature"   # Test → push → create PR
+```
+
+<br/>
+
 ## Conventions
 
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`)
