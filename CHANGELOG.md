@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.1](https://github.com/somaz94/multi-git-mirror/compare/v1.1.0...v1.1.1) (2026-03-25)
+
+### Bug Fixes
+
+- correct license badge to MIT, optimize Docker build ([57deca5](https://github.com/somaz94/multi-git-mirror/commit/57deca5b43e87567de4351083d1318ced1e983b6))
+
+### Documentation
+
+- add no-push rule to CLAUDE.md ([094881a](https://github.com/somaz94/multi-git-mirror/commit/094881a2d7aed45e1e681bc173dbc091cbf8ecab))
+
+### Continuous Integration
+
+- skip auto-generated changelog and contributors commits in release notes ([f1d6abf](https://github.com/somaz94/multi-git-mirror/commit/f1d6abf96297f2bfffd7d006f6a0628c7bda3245))
+- revert to body_path RELEASE.md in release workflow ([8005744](https://github.com/somaz94/multi-git-mirror/commit/80057449b84e57bb402cd8b8cbd2aa82a1011120))
+- use generate_release_notes instead of body_path in release workflow ([3f2b874](https://github.com/somaz94/multi-git-mirror/commit/3f2b87431cf705f270e6f82990e74bed0f4b627d))
+- add auto-generated PR body script for make pr ([211ea5c](https://github.com/somaz94/multi-git-mirror/commit/211ea5cb9b809d3d50a3f05c5420affd1f52a521))
+
+### Chores
+
+- add workflow Makefile targets (check-gh, branch, pr) ([fcb15ce](https://github.com/somaz94/multi-git-mirror/commit/fcb15cef90ee6c58f8a2666acb4c3be1b16bf4c5))
+- upgrade Go version to 1.26 ([516524e](https://github.com/somaz94/multi-git-mirror/commit/516524ee003e23d1e916947964fd99380e21e9d4))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v1.1.0](https://github.com/somaz94/multi-git-mirror/compare/v1.0.1...v1.1.0) (2026-03-18)
 
 ### Features
@@ -15,7 +43,6 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - README.md ([9cce1f3](https://github.com/somaz94/multi-git-mirror/commit/9cce1f3ea49dabcdf42b57ce784bedae0b569ae5))
-- update changelog ([a08538e](https://github.com/somaz94/multi-git-mirror/commit/a08538e50aa29f6bc5b4c88408f788bd75531200))
 
 ### Contributors
 
@@ -38,8 +65,6 @@ All notable changes to this project will be documented in this file.
 
 - note Workspace Access Token requires Bitbucket Premium plan ([bec56b9](https://github.com/somaz94/multi-git-mirror/commit/bec56b9cea5e08ec8fbafb815d35bf2edeee8cc4))
 - update Bitbucket auth guide with Repository/Workspace Access Tokens ([4369237](https://github.com/somaz94/multi-git-mirror/commit/4369237470d747bf4623a51a504d14cfd8b6a460))
-- update CONTRIBUTORS.md ([4a88a78](https://github.com/somaz94/multi-git-mirror/commit/4a88a78a32ffd63874f2bc35815b93a3111efe94))
-- update changelog ([6021cac](https://github.com/somaz94/multi-git-mirror/commit/6021cacb44a7bba1d08bc1ee627418cf62cee60e))
 
 ### Continuous Integration
 
