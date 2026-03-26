@@ -2,10 +2,6 @@
 
 GitHub Action to mirror repositories to multiple Git hosting providers (GitLab, GitHub, Bitbucket, CodeCommit, etc.) using Go.
 
-- Do not include `Co-Authored-By` lines in commit messages.
-- Do not push to remote. Only commit. The user will push manually.
-- Do not modify git config.
-
 ## Project Structure
 
 ```
@@ -90,6 +86,3 @@ tag push v* → Create release
 - **Release**: git-cliff for RELEASE.md, major-tag-action for `v1` tag
 - **cliff.toml**: Skip `^Merge`, `^Update changelog`, `^Auto commit`
 - **paths-ignore**: `.github/workflows/**`, `**/*.md`
-
-- Communicate with the user in Korean.
-- All documentation and code comments must be written in English.
