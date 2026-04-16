@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-04-16)
+
+### Documentation
+
+- remove duplicate rules covered by global CLAUDE.md ([d100f8e](https://github.com/somaz94/multi-git-mirror/commit/d100f8e2428892996da19f622286fa2420731f53))
+
+### Chores
+
+- **deps:** bump softprops/action-gh-release from 2 to 3 ([1f264df](https://github.com/somaz94/multi-git-mirror/commit/1f264df595a75603a4382e82226ce389fac0aa5c))
+- remove duplicate rules from CLAUDE.md (moved to global) ([5567a87](https://github.com/somaz94/multi-git-mirror/commit/5567a87d229c5e879307ce92012283996ba83f2e))
+- add git config protection to CLAUDE.md ([548b81e](https://github.com/somaz94/multi-git-mirror/commit/548b81e659d8a14be1405bf6f692564785c84d90))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v1.1.1](https://github.com/somaz94/multi-git-mirror/compare/v1.1.0...v1.1.1) (2026-03-25)
 
 ### Bug Fixes
