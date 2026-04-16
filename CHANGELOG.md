@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Chores
 
+- **deps:** bump dependabot/fetch-metadata from 2 to 3 ([6972347](https://github.com/somaz94/multi-git-mirror/commit/697234790673be30647005c74aa1754692d9037e))
 - **deps:** bump softprops/action-gh-release from 2 to 3 ([1f264df](https://github.com/somaz94/multi-git-mirror/commit/1f264df595a75603a4382e82226ce389fac0aa5c))
 - remove duplicate rules from CLAUDE.md (moved to global) ([5567a87](https://github.com/somaz94/multi-git-mirror/commit/5567a87d229c5e879307ce92012283996ba83f2e))
 - add git config protection to CLAUDE.md ([548b81e](https://github.com/somaz94/multi-git-mirror/commit/548b81e659d8a14be1405bf6f692564785c84d90))
