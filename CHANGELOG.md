@@ -2,14 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-04-16)
+## Unreleased (2026-06-25)
 
 ### Documentation
 
 - remove duplicate rules covered by global CLAUDE.md ([d100f8e](https://github.com/somaz94/multi-git-mirror/commit/d100f8e2428892996da19f622286fa2420731f53))
 
+### Continuous Integration
+
+- add DCO check via shared reusable workflow ([7c29743](https://github.com/somaz94/multi-git-mirror/commit/7c297436658e1a1caf7e8349c0381ad93c221abb))
+- add concurrency guards to recurring workflows ([42961d7](https://github.com/somaz94/multi-git-mirror/commit/42961d7c332b58af92e1a555caf11f34d26cbf0c))
+
 ### Chores
 
+- **deps:** bump actions/checkout from 6 to 7 (#6) ([#6](https://github.com/somaz94/multi-git-mirror/pull/6)) ([0d723ff](https://github.com/somaz94/multi-git-mirror/commit/0d723fffc0db9a73832d4a3bbb0264c2b2d540d8))
+- **deps:** bump alpine from 3.23 to 3.24 in the docker-minor group (#5) ([#5](https://github.com/somaz94/multi-git-mirror/pull/5)) ([9502dbb](https://github.com/somaz94/multi-git-mirror/commit/9502dbb70e3afb7b18334a570b926b903b41759c))
 - **deps:** bump actions/github-script from 8 to 9 ([d237b2b](https://github.com/somaz94/multi-git-mirror/commit/d237b2bae92ae5097ebf069230d1cd0c67c14048))
 - **deps:** bump dependabot/fetch-metadata from 2 to 3 ([6972347](https://github.com/somaz94/multi-git-mirror/commit/697234790673be30647005c74aa1754692d9037e))
 - **deps:** bump softprops/action-gh-release from 2 to 3 ([1f264df](https://github.com/somaz94/multi-git-mirror/commit/1f264df595a75603a4382e82226ce389fac0aa5c))
