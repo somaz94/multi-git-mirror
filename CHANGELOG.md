@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-06-25)
+## Unreleased (2026-07-23)
 
 ### Documentation
 
@@ -10,11 +10,20 @@ All notable changes to this project will be documented in this file.
 
 ### Continuous Integration
 
+- remove DCO workflow ([24478cb](https://github.com/somaz94/multi-git-mirror/commit/24478cb81c986b50eee3932779f436486dbfa0f7))
+- adopt semantic-pr, labels, lock-threads, PR size, and auto-assign reusables ([ef31ea4](https://github.com/somaz94/multi-git-mirror/commit/ef31ea4a2a386a0a20c4a7e0b375a8ed478c1635))
+- use reusable stale-issues workflow ([a6823fd](https://github.com/somaz94/multi-git-mirror/commit/a6823fd88e38aba6be8b79aca9ad9255b472a8ed))
+- use reusable issue-greeting workflow ([6dad372](https://github.com/somaz94/multi-git-mirror/commit/6dad372e655fea7a4bfd5d202ec1ae4dcaa3fc3a))
+- use reusable dependabot-auto-merge workflow ([31e3292](https://github.com/somaz94/multi-git-mirror/commit/31e329232727e6b6e02053725505653d6fc48e8c))
+- use reusable contributors workflow ([cb44cd3](https://github.com/somaz94/multi-git-mirror/commit/cb44cd30f4b18fb1c23b394931f6d5b57f795d36))
+- add ok-to-test workflow stub ([4b5e671](https://github.com/somaz94/multi-git-mirror/commit/4b5e671f3777677617642c685591240a76c3efc7))
+- add PR welcome workflow stub ([de9be87](https://github.com/somaz94/multi-git-mirror/commit/de9be877a51a164b711d8910d59520742bfa0708))
 - add DCO check via shared reusable workflow ([7c29743](https://github.com/somaz94/multi-git-mirror/commit/7c297436658e1a1caf7e8349c0381ad93c221abb))
 - add concurrency guards to recurring workflows ([42961d7](https://github.com/somaz94/multi-git-mirror/commit/42961d7c332b58af92e1a555caf11f34d26cbf0c))
 
 ### Chores
 
+- **deps:** bump actions/setup-go from 6 to 7 ([2208966](https://github.com/somaz94/multi-git-mirror/commit/2208966f3454eb2f490611f2604a199e835081bc))
 - **deps:** bump actions/checkout from 6 to 7 (#6) ([#6](https://github.com/somaz94/multi-git-mirror/pull/6)) ([0d723ff](https://github.com/somaz94/multi-git-mirror/commit/0d723fffc0db9a73832d4a3bbb0264c2b2d540d8))
 - **deps:** bump alpine from 3.23 to 3.24 in the docker-minor group (#5) ([#5](https://github.com/somaz94/multi-git-mirror/pull/5)) ([9502dbb](https://github.com/somaz94/multi-git-mirror/commit/9502dbb70e3afb7b18334a570b926b903b41759c))
 - **deps:** bump actions/github-script from 8 to 9 ([d237b2b](https://github.com/somaz94/multi-git-mirror/commit/d237b2bae92ae5097ebf069230d1cd0c67c14048))
