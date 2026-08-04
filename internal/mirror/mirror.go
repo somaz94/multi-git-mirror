@@ -24,11 +24,11 @@ type gitRunner func(args ...string) error
 
 // Mirror handles repository mirroring operations.
 type Mirror struct {
-	cfg       *config.Config
-	gitFn     gitRunner
-	secrets   []string   // values to mask in debug logs
-	sshDir    string     // directory for SSH key files
-	configMu  sync.Mutex // protects git config operations (remote add/remove)
+	cfg      *config.Config
+	gitFn    gitRunner
+	secrets  []string   // values to mask in debug logs
+	sshDir   string     // directory for SSH key files
+	configMu sync.Mutex // protects git config operations (remote add/remove)
 }
 
 // New creates a new Mirror instance.

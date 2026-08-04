@@ -51,7 +51,11 @@ func (m *Mirror) setupSSH() error {
 	}
 
 	// Set GIT_SSH_COMMAND to use our config
-	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -F %s -o BatchMode=yes", configPath))
+	// Without this git would fall back to the ambient SSH credentials and mirror
+	// under the wrong identity, so a failure has to stop the setup.
+	if err := os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -F %s -o BatchMode=yes", configPath)); err != nil {
+		return fmt.Errorf("failed to set GIT_SSH_COMMAND: %w", err)
+	}
 
 	m.logDebug("SSH key configured at %s", keyPath)
 	return nil
@@ -63,10 +67,11 @@ func (m *Mirror) cleanupSSH() {
 		return
 	}
 
-	os.Remove(filepath.Join(m.sshDir, sshKeyFile))
-	os.Remove(filepath.Join(m.sshDir, sshConfigFile))
-	os.Remove(filepath.Join(m.sshDir, knownHosts))
-	os.Unsetenv("GIT_SSH_COMMAND")
+	// Best-effort cleanup; the process is on its way out either way.
+	_ = os.Remove(filepath.Join(m.sshDir, sshKeyFile))
+	_ = os.Remove(filepath.Join(m.sshDir, sshConfigFile))
+	_ = os.Remove(filepath.Join(m.sshDir, knownHosts))
+	_ = os.Unsetenv("GIT_SSH_COMMAND")
 
 	m.logDebug("SSH key files cleaned up")
 }

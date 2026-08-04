@@ -18,7 +18,6 @@ func mockGitOK() gitRunner {
 	}
 }
 
-
 func TestEnsureGitRepoAlreadyExists(t *testing.T) {
 	cfg := &config.Config{}
 	m := New(cfg)

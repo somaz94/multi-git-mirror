@@ -20,9 +20,10 @@ func main() {
 func run() error {
 	// Trust the GitHub Actions workspace directory inside Docker
 	if workspace := os.Getenv("GITHUB_WORKSPACE"); workspace != "" {
-		exec.Command("git", "config", "--global", "--add", "safe.directory", workspace).Run()
+		// Best effort: if this fails, the git commands below report it themselves.
+		_ = exec.Command("git", "config", "--global", "--add", "safe.directory", workspace).Run()
 	}
-	exec.Command("git", "config", "--global", "--add", "safe.directory", "/github/workspace").Run()
+	_ = exec.Command("git", "config", "--global", "--add", "safe.directory", "/github/workspace").Run()
 
 	cfg, err := config.Load()
 	if err != nil {

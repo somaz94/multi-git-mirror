@@ -53,7 +53,8 @@ func writeGitHubOutput(path, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open GITHUB_OUTPUT: %w", err)
 	}
-	defer f.Close()
+	// os.File writes are unbuffered, so Close carries no pending data.
+	defer func() { _ = f.Close() }()
 
 	_, err = fmt.Fprintf(f, "%s=%s\n", key, value)
 	if err != nil {
