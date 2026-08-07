@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-07-23)
+## Unreleased (2026-08-07)
+
+### Performance Improvements
+
+- ship a prebuilt multi-arch image instead of building per run ([5ee9a7d](https://github.com/somaz94/multi-git-mirror/commit/5ee9a7d0fd136940134884b6580dedd0f2df2886))
 
 ### Documentation
 
@@ -10,6 +14,7 @@ All notable changes to this project will be documented in this file.
 
 ### Continuous Integration
 
+- add a golangci-lint config scoped to defect-finding linters ([96286ed](https://github.com/somaz94/multi-git-mirror/commit/96286edc59a9e471452309e4c86d3d7d96ce9289))
 - remove DCO workflow ([24478cb](https://github.com/somaz94/multi-git-mirror/commit/24478cb81c986b50eee3932779f436486dbfa0f7))
 - adopt semantic-pr, labels, lock-threads, PR size, and auto-assign reusables ([ef31ea4](https://github.com/somaz94/multi-git-mirror/commit/ef31ea4a2a386a0a20c4a7e0b375a8ed478c1635))
 - use reusable stale-issues workflow ([a6823fd](https://github.com/somaz94/multi-git-mirror/commit/a6823fd88e38aba6be8b79aca9ad9255b472a8ed))
