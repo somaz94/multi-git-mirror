@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-08-07)
+## [v1.2.0](https://github.com/somaz94/multi-git-mirror/compare/v1.1.1...v1.2.0) (2026-08-07)
 
 ### Performance Improvements
 
