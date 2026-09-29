@@ -82,7 +82,7 @@ runs:
   # (~31s). Subtle: this version's image must be published (release.yml
   # workflow_dispatch) before its git tag is pushed, and a runner can pull only
   # the pushed platforms (linux/amd64, linux/arm64).
-  image: docker://ghcr.io/somaz94/multi-git-mirror:v1.2.0
+  image: docker://ghcr.io/somaz94/multi-git-mirror:v1.2.1
   env:
     INPUT_TARGETS: ${{ inputs.targets }}
     INPUT_GITLAB_TOKEN: ${{ inputs.gitlab_token }}
