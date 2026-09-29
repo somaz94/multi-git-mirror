@@ -88,26 +88,35 @@ jobs:
 
       - name: 'Test: Docker rejects missing targets'
         run: |
-          ! docker run \
+          if docker run \
             --env INPUT_MIRROR_BRANCHES="all" \
-            --rm ${{ env.TEST_TAG }}
+            --rm ${{ env.TEST_TAG }}; then
+            echo "FAIL: missing targets were accepted"
+            exit 1
+          fi
           echo "PASS: missing targets correctly rejected"
 
       - name: 'Test: Docker rejects empty branches'
         run: |
-          ! docker run \
+          if docker run \
             --env INPUT_TARGETS="generic::https://example.com/org/repo.git" \
             --env INPUT_MIRROR_BRANCHES="" \
-            --rm ${{ env.TEST_TAG }}
+            --rm ${{ env.TEST_TAG }}; then
+            echo "FAIL: empty branches were accepted"
+            exit 1
+          fi
           echo "PASS: empty branches correctly rejected"
 
       - name: 'Test: Docker dry-run fails with unreachable URL'
         run: |
-          ! docker run \
+          if docker run \
             --env INPUT_TARGETS="generic::https://example.com/org/repo.git" \
             --env INPUT_MIRROR_BRANCHES="all" \
             --env INPUT_DRY_RUN="true" \
-            --rm ${{ env.TEST_TAG }}
+            --rm ${{ env.TEST_TAG }}; then
+            echo "FAIL: dry-run succeeded with an unreachable URL"
+            exit 1
+          fi
           echo "PASS: dry-run correctly fails with unreachable URL"
 
   test-action:
@@ -171,29 +180,41 @@ jobs:
 
       - name: 'Test: missing targets fails (exit 1)'
         run: |
-          ! INPUT_MIRROR_BRANCHES="all" ./multi-git-mirror
+          if INPUT_MIRROR_BRANCHES="all" ./multi-git-mirror; then
+            echo "FAIL: missing targets were accepted"
+            exit 1
+          fi
           echo "PASS: missing targets correctly rejected"
 
       - name: 'Test: unknown provider fails (exit 1)'
         run: |
-          ! INPUT_TARGETS="invalid::https://example.com/org/repo.git" \
+          if INPUT_TARGETS="invalid::https://example.com/org/repo.git" \
           INPUT_MIRROR_BRANCHES="all" \
-          ./multi-git-mirror
+          ./multi-git-mirror; then
+            echo "FAIL: unknown provider was accepted"
+            exit 1
+          fi
           echo "PASS: unknown provider correctly rejected"
 
       - name: 'Test: empty branches fails (exit 1)'
         run: |
-          ! INPUT_TARGETS="generic::https://example.com/org/repo.git" \
+          if INPUT_TARGETS="generic::https://example.com/org/repo.git" \
           INPUT_MIRROR_BRANCHES="" \
-          ./multi-git-mirror
+          ./multi-git-mirror; then
+            echo "FAIL: empty branches were accepted"
+            exit 1
+          fi
           echo "PASS: empty branches correctly rejected"
 
       - name: 'Test: dry-run fails with unreachable URL (exit 1)'
         run: |
-          ! INPUT_TARGETS="generic::https://example.com/org/repo.git" \
+          if INPUT_TARGETS="generic::https://example.com/org/repo.git" \
           INPUT_MIRROR_BRANCHES="all" \
           INPUT_DRY_RUN="true" \
-          ./multi-git-mirror
+          ./multi-git-mirror; then
+            echo "FAIL: dry-run succeeded with an unreachable URL"
+            exit 1
+          fi
           echo "PASS: dry-run correctly fails with unreachable URL"
 
   ci-result:
