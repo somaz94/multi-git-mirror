@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.1](https://github.com/somaz94/multi-git-mirror/compare/v1.2.0...v1.2.1) (2026-09-29)
+
+### Bug Fixes
+
+- configure git through the process environment instead of ~/.gitconfig ([dfdaade](https://github.com/somaz94/multi-git-mirror/commit/dfdaadef4eb10cbf10b9720e5dd6777c75126928))
+
+### Continuous Integration
+
+- fail the negative tests when a bad input is accepted ([3f19e43](https://github.com/somaz94/multi-git-mirror/commit/3f19e43ded070e41a63bf937790ef35ea098733a))
+- correct stale image-seeding comments ([67d9a4f](https://github.com/somaz94/multi-git-mirror/commit/67d9a4f68ebb18f90e5eb9858607390a180aab41))
+- trim redundant comments in gitlab-mirror workflow ([7a66ba8](https://github.com/somaz94/multi-git-mirror/commit/7a66ba87a8a8b7d0bdb36a6533c3eca5adf5470a))
+- correct the image-seeding comment in the release workflow ([5cd6601](https://github.com/somaz94/multi-git-mirror/commit/5cd6601b0c5505c3a64bfeda77ca56bdf4adc10a))
+- retry mirror pushes on transient remote failures ([de08e59](https://github.com/somaz94/multi-git-mirror/commit/de08e59980a44e013438196d120a7b1ab76c9afe))
+- drop the dead issue-close trigger from changelog generation ([48bf57c](https://github.com/somaz94/multi-git-mirror/commit/48bf57c908469a6b2276cd4b4b67e6a8daaac4bf))
+- skip release-triggered runs on the image-seeding dispatch ([cb7b1f3](https://github.com/somaz94/multi-git-mirror/commit/cb7b1f3315b53024b0c1bcd4ee5595be9126fcd4))
+
+### Chores
+
+- bump the action image to v1.2.1 ([0fdf20b](https://github.com/somaz94/multi-git-mirror/commit/0fdf20ba0d6c44123c25a6b50a1d545e9783233a))
+- **deps:** bump golang from 1.27rc3-alpine to 1.27-alpine (#9) ([#9](https://github.com/somaz94/multi-git-mirror/pull/9)) ([9b379d6](https://github.com/somaz94/multi-git-mirror/commit/9b379d67948a14ee4683df8d3cab1cafeb0726ec))
+- **deps:** bump golang from 1.26-alpine to 1.27rc3-alpine (#8) ([#8](https://github.com/somaz94/multi-git-mirror/pull/8)) ([a9b6911](https://github.com/somaz94/multi-git-mirror/commit/a9b691126177658db7a63e12f1542471db7ee37b))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v1.2.0](https://github.com/somaz94/multi-git-mirror/compare/v1.1.1...v1.2.0) (2026-08-07)
 
 ### Performance Improvements
