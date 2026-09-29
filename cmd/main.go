@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/somaz94/multi-git-mirror/internal/config"
 	"github.com/somaz94/multi-git-mirror/internal/mirror"
@@ -18,12 +17,12 @@ func main() {
 }
 
 func run() error {
-	// Trust the GitHub Actions workspace directory inside Docker
+	// Trust the GitHub Actions workspace directory inside Docker, via env so no config file is written.
 	if workspace := os.Getenv("GITHUB_WORKSPACE"); workspace != "" {
 		// Best effort: if this fails, the git commands below report it themselves.
-		_ = exec.Command("git", "config", "--global", "--add", "safe.directory", workspace).Run()
+		_ = mirror.AddConfigEnv("safe.directory", workspace)
 	}
-	_ = exec.Command("git", "config", "--global", "--add", "safe.directory", "/github/workspace").Run()
+	_ = mirror.AddConfigEnv("safe.directory", "/github/workspace")
 
 	cfg, err := config.Load()
 	if err != nil {
