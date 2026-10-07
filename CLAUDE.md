@@ -13,7 +13,7 @@ internal/
     ssh.go                   # SSH key setup/cleanup for git operations
   output/                    # GitHub Actions output writer (JSON result, counts)
 Makefile                     # Build, test, lint commands
-Dockerfile                   # Multi-stage (golang:1.24-alpine → alpine:3.21)
+Dockerfile                   # Multi-stage (golang alpine builder → alpine runtime)
 action.yml                   # GitHub Action definition (15 inputs, 3 outputs)
 cliff.toml                   # git-cliff config for release notes
 ```

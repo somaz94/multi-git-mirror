@@ -1,3 +1,3 @@
 module github.com/somaz94/multi-git-mirror
 
-go 1.26
+go 1.27

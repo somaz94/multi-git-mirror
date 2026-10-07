@@ -47,7 +47,7 @@ Guide for building, testing, and contributing to multi-git-mirror.
 │   ├── dependabot.yml           # Dependency updates
 │   └── release.yml              # Release note categories
 ├── action.yml                   # Action metadata (15 inputs, 3 outputs)
-├── Dockerfile                   # Multi-stage (golang:1.26-alpine → alpine:3.23)
+├── Dockerfile                   # Multi-stage (golang alpine builder → alpine runtime)
 ├── Makefile                     # Build, test, lint commands
 ├── cliff.toml                   # git-cliff changelog config
 ├── CODEOWNERS                   # Repository ownership
@@ -116,8 +116,8 @@ docker run \
 ```
 
 The Dockerfile uses a multi-stage build:
-1. **Builder** — `golang:1.26-alpine` compiles the Go binary
-2. **Runtime** — `alpine:3.23` with `git`, `git-lfs`, and `openssh-client`
+1. **Builder** — the `golang` alpine image compiles the Go binary
+2. **Runtime** — `alpine` with `git`, `git-lfs`, and `openssh-client`
 
 <br/>
 
