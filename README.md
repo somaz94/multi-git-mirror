@@ -284,6 +284,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 <br/>
 
+## Related projects
+
+- [git-bridge](https://github.com/somaz94/git-bridge): A service that mirrors repositories any-to-any between CodeCommit, GitLab and GitHub, driven by webhooks and SQS.
+
+<br/>
+
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
